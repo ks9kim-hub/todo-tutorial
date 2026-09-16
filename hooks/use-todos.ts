@@ -38,7 +38,6 @@ export function useTodos() {
         const base = Date.now();
         if (!mutatedBeforeLoadRef.current) {
           // 마운트 후 서버 값으로 동기화 — hydration mismatch 방지를 위해 의도적으로 effect에서 설정
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setTodos(
             parsed.map((todo, index) => ({
               ...todo,
