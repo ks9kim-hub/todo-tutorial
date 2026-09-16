@@ -4,9 +4,11 @@
 
 ## 프로젝트 소개
 
-할 일을 추가·완료·삭제할 수 있는 Todo 앱입니다.
+할 일을 추가·완료·삭제·편집할 수 있는 Todo 앱입니다.
 
-- 할 일 목록 관리(추가/완료 토글/삭제)
+- 할 일 목록 관리 (추가 / 완료 토글 / 삭제 / 더블클릭으로 인라인 편집)
+- 우선순위(높음·보통·낮음), 마감일, 카테고리(업무·개인·쇼핑) 지정
+- 검색, 상태별 필터(전체/진행중/완료), 카테고리별 필터, 정렬(생성일순/이름순/마감일순)
 - 다크 모드 전환 (`d` 단축키)
 - Vercel Blob을 이용한 서버 측 데이터 저장 (`app/api/todos`)
 
@@ -20,9 +22,10 @@
 - Next.js 16 (App Router, Turbopack)
 - React 19
 - Tailwind CSS v4
-- shadcn/ui (radix-maia 스타일, taupe 베이스)
+- shadcn/ui (radix-mira 스타일, taupe 베이스)
 - TypeScript / ESLint / Prettier
-- 패키지 매니저: bun 1.3.6
+- 패키지 매니저: bun
+- 테스트: Vitest, Testing Library
 
 ## 시작하기
 
@@ -55,14 +58,6 @@ bun run lint       # ESLint
 bun run typecheck  # tsc --noEmit
 bun run format     # Prettier 포맷팅
 bun run test       # Vitest 테스트 실행
-```
-
-## 챕터별 시작 브랜치
-
-각 레슨은 시작 시점의 코드 상태를 브랜치로 제공합니다. 레슨 본문에서 안내하는 브랜치로 전환한 뒤 따라가시면 됩니다.
-
-```shell
-git checkout ch02-03
 ```
 
 ## 컴포넌트 추가
