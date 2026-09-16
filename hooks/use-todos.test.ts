@@ -1,8 +1,30 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useTodos } from "@/hooks/use-todos";
 
+// 서버(Vercel Blob) 대신 메모리 상의 가짜 저장소에 응답하는 fetch 목.
+// GET은 현재 저장값을, PUT은 전달된 값을 저장소에 반영한다.
+let serverStore: unknown = [];
+let getShouldFail = false;
+
+function mockFetch(url: string, init?: RequestInit) {
+  if (init?.method === "PUT") {
+    serverStore = JSON.parse(init.body as string);
+    return Promise.resolve(new Response(JSON.stringify({ ok: true })));
+  }
+  if (getShouldFail) {
+    return Promise.resolve(new Response(null, { status: 500 }));
+  }
+  return Promise.resolve(new Response(JSON.stringify(serverStore)));
+}
+
 beforeEach(() => {
-  localStorage.clear();
+  serverStore = [];
+  getShouldFail = false;
+  vi.stubGlobal("fetch", vi.fn(mockFetch));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("useTodos 우선순위", () => {
@@ -31,10 +53,7 @@ describe("useTodos 우선순위", () => {
   });
 
   it("priority가 없는 기존 저장 데이터는 medium으로 보정해 로드한다", async () => {
-    localStorage.setItem(
-      "todos",
-      JSON.stringify([{ id: "1", text: "구버전 할 일", completed: false }])
-    );
+    serverStore = [{ id: "1", text: "구버전 할 일", completed: false }];
 
     const { result } = renderHook(() => useTodos());
 
@@ -43,7 +62,7 @@ describe("useTodos 우선순위", () => {
     expect(result.current.todos[0].priority).toBe("medium");
   });
 
-  it("추가한 우선순위를 localStorage에 저장한다", async () => {
+  it("추가한 우선순위를 서버에 저장한다", async () => {
     const { result } = renderHook(() => useTodos());
 
     act(() => {
@@ -51,7 +70,7 @@ describe("useTodos 우선순위", () => {
     });
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem("todos") ?? "[]");
+      const stored = serverStore as { priority?: string }[];
       expect(stored[0]?.priority).toBe("low");
     });
   });
@@ -92,12 +111,9 @@ describe("useTodos 마감일", () => {
   });
 
   it("createdAt이 없는 기존 데이터는 number로 보정해 로드한다", async () => {
-    localStorage.setItem(
-      "todos",
-      JSON.stringify([
-        { id: "1", text: "구버전 할 일", completed: false, priority: "medium" },
-      ])
-    );
+    serverStore = [
+      { id: "1", text: "구버전 할 일", completed: false, priority: "medium" },
+    ];
 
     const { result } = renderHook(() => useTodos());
 
@@ -129,29 +145,22 @@ describe("useTodos 카테고리", () => {
 });
 
 describe("useTodos 손상 데이터 보호", () => {
-  it("파싱할 수 없는 저장값을 빈 배열로 덮어쓰지 않는다", async () => {
-    localStorage.setItem("todos", "{이건 JSON이 아님");
+  it("로드 실패 시 빈 배열로 서버 데이터를 덮어쓰지 않는다", async () => {
+    getShouldFail = true;
+    serverStore = [{ id: "1", text: "기존 할 일", completed: false }];
 
     const { result } = renderHook(() => useTodos());
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.todos).toEqual([]);
-    // 손상된 원본이 보존돼 복구 여지가 남아야 한다
-    expect(localStorage.getItem("todos")).toBe("{이건 JSON이 아님");
+    // 로드 실패 후에도 서버의 기존 데이터가 보존돼야 한다
+    expect(serverStore).toEqual([
+      { id: "1", text: "기존 할 일", completed: false },
+    ]);
   });
 
-  it("배열이 아닌 저장값도 덮어쓰지 않는다", async () => {
-    localStorage.setItem("todos", JSON.stringify({ x: 1 }));
-
-    const { result } = renderHook(() => useTodos());
-
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-    expect(result.current.todos).toEqual([]);
-    expect(localStorage.getItem("todos")).toBe('{"x":1}');
-  });
-
-  it("손상 데이터 로드 후 새 항목을 추가하면 정상적으로 저장된다", async () => {
-    localStorage.setItem("todos", "{이건 JSON이 아님");
+  it("로드 실패 후 새 항목을 추가하면 정상적으로 저장된다", async () => {
+    getShouldFail = true;
 
     const { result } = renderHook(() => useTodos());
     await waitFor(() => expect(result.current.loaded).toBe(true));
@@ -161,7 +170,7 @@ describe("useTodos 손상 데이터 보호", () => {
     });
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem("todos") ?? "null");
+      const stored = serverStore as { text?: string }[];
       expect(Array.isArray(stored)).toBe(true);
       expect(stored[0]?.text).toBe("새 할 일");
     });

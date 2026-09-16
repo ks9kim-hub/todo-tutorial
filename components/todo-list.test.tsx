@@ -2,11 +2,28 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TodoList } from "@/components/todo-list";
 
-// TodoList는 useTodos(localStorage)를 직접 사용하므로
+// TodoList는 useTodos(Vercel Blob 기반 /api/todos)를 직접 사용하므로
 // 입력 → 목록 → 영속화까지 전체 흐름을 통합으로 검증한다.
+// fetch를 메모리 상의 가짜 저장소에 응답하도록 목 처리해 서버 역할을 대신한다.
+
+let serverStore: unknown = [];
 
 beforeEach(() => {
-  localStorage.clear();
+  serverStore = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((_url: string, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        serverStore = JSON.parse(init.body as string);
+        return Promise.resolve(new Response(JSON.stringify({ ok: true })));
+      }
+      return Promise.resolve(new Response(JSON.stringify(serverStore)));
+    })
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 // 입력 필드에 텍스트를 입력하고 Enter로 제출하는 헬퍼
@@ -121,13 +138,13 @@ describe("TodoList 검증 체크리스트", () => {
   it("5. 페이지 새로고침 → 기존 목록 유지", async () => {
     const user = userEvent.setup();
 
-    // 첫 렌더에서 항목 추가 → localStorage에 저장됨
+    // 첫 렌더에서 항목 추가 → 서버(Vercel Blob)에 저장됨
     const { unmount } = render(<TodoList />);
     await addTodo(user, "장보기");
     await screen.findByText("장보기");
     unmount();
 
-    // 새로고침을 시뮬레이션: 새 인스턴스를 마운트하면 localStorage에서 다시 로드
+    // 새로고침을 시뮬레이션: 새 인스턴스를 마운트하면 서버에서 다시 로드
     render(<TodoList />);
 
     expect(await screen.findByText("장보기")).toBeInTheDocument();
