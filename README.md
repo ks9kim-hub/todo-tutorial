@@ -2,6 +2,14 @@
 
 [Claude Code Playbook](https://docs.claude-hunt.com) 강의의 실습용 저장소입니다. Next.js 와 shadcn/ui 로 시작하는 작은 Todo 앱을 단계별로 발전시키며 Claude Code 사용법을 익힙니다.
 
+## 프로젝트 소개
+
+할 일을 추가·완료·삭제할 수 있는 Todo 앱입니다.
+
+- 할 일 목록 관리(추가/완료 토글/삭제)
+- 다크 모드 전환 (`d` 단축키)
+- Vercel Blob을 이용한 서버 측 데이터 저장 (`app/api/todos`)
+
 ## 관련 링크
 
 - 강의 본문: https://docs.claude-hunt.com
@@ -17,6 +25,18 @@
 - 패키지 매니저: bun 1.3.6
 
 ## 시작하기
+
+### 환경 변수
+
+할 일 데이터는 [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)에 저장됩니다. 로컬에서 실행하려면 프로젝트 루트에 `.env.local` 파일을 만들고 Blob 스토어의 읽기/쓰기 토큰을 설정하세요.
+
+```bash
+BLOB_READ_WRITE_TOKEN=your_token_here
+```
+
+Vercel 프로젝트와 연결되어 있다면 `vercel env pull .env.local` 명령으로 값을 받아올 수 있습니다.
+
+### 설치 및 실행
 
 ```bash
 bun install
@@ -34,6 +54,7 @@ bun run start      # 빌드 결과 실행
 bun run lint       # ESLint
 bun run typecheck  # tsc --noEmit
 bun run format     # Prettier 포맷팅
+bun run test       # Vitest 테스트 실행
 ```
 
 ## 챕터별 시작 브랜치
